@@ -1,0 +1,28 @@
+<div class="modal-header">
+    <h4 class="modal-title">Connection Settings</h4>
+    <button type="button" class="close" aria-label="Close" (click)="activeModal.dismiss('Cross click')">
+        <span aria-hidden="true">&times;</span>
+    </button>
+</div>
+<div class="modal-body">
+
+    <div class="input-group mb-3" *ngIf="showServerUrl">
+        <span class="input-group-text" id="serverUrlSp">Server URL</span>
+        <input type="text" class="form-control" id="server_url" aria-describedby="serverUrlSp" [(ngModel)]="connInfo.server">
+    </div>
+
+    <div class="input-group mb-3" *ngIf="showClientId">
+        <span class="input-group-text" id="clientIdSp">Client ID</span>
+        <input type="text" class="form-control" id="client_id" aria-describedby="clientIdSp" [(ngModel)]="connInfo.targetClientId">
+    </div>
+
+    <div class="input-group mb-3" *ngIf="showPassword">
+        <span class="input-group-text" id="passwordSp">Password</span>
+        <input type="password" class="form-control" id="password" aria-describedby="passwordSp" [(ngModel)]="connInfo.password">
+    </div>
+
+</div>
+<div class="modal-footer">
+    <button type="button" class="btn btn-outline-dark" (click)="activeModal.close(false)">Close</button>
+    <button type="button" class="btn btn-primary" (click)="activeModal.close(true)">Connect</button>
+</div>

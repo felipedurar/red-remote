@@ -1,0 +1,20 @@
+<div style="width: 100%; height: 100%; background-color: black;">
+    <div class="outer" *ngIf="currentStatus == 0">
+        <div class="middle">
+            <div class="inner">
+                <div style="color: red; text-align: center; font-size: 18px;">No Connection</div>
+            </div>
+        </div>
+    </div>
+    <div class="outer" *ngIf="currentStatus == 1">
+        <div class="middle">
+            <div class="inner">
+                <div style="color: white; text-align: center; font-size: 18px;">Connecting...</div>
+            </div>
+        </div>
+    </div>
+    <div *ngIf="currentStatus == 10">
+        <canvas #viewport id="viewport" width="1920" height="1080"></canvas>
+    </div>
+
+</div>
