@@ -21,7 +21,7 @@ export class ConnectionDialogComponent implements OnInit {
 
   ngOnInit() {
     this.showServerUrl = !this.connInfo.server;
-    this.showClientId = !this.connInfo.clientId;
+    this.showClientId = !this.connInfo.targetClientId;
     this.showPassword = !this.connInfo.password;
 
   }
