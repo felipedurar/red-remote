@@ -4,6 +4,7 @@ import time
 import json
 import platform
 import websocket
+import base64
 
 import RedConfig
 
@@ -100,6 +101,19 @@ class RedNetwork:
         startPacket["width"] = self.client.screenResolution[0]
         startPacket["height"] = self.client.screenResolution[1]
         self.sendPacket(startPacket)
+        return
+
+    def enqueueFrameSegment(self, rect, frameBytes):
+        packet = {}
+        b64Str = base64.b64encode(frameBytes.getvalue()).decode()
+        packet["type"] = "framesegment"
+        packet["data"] = b64Str
+        packet["rect"] = {}
+        packet["rect"]["left"] = rect[0]
+        packet["rect"]["upper"] = rect[1]
+        packet["rect"]["right"] = rect[2]
+        packet["rect"]["bottom"] = rect[3]
+        self.frameQueue.append(packet)
         return
 
     def on_message(self, ws, message):

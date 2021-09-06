@@ -3,19 +3,22 @@ import threading
 import time
 import math
 import json
-import base64
 
-import PIL.ImageGrab
-import PIL.ImageChops
 from io import BytesIO
-import PIL.Image
-
-import RedNetwork
 
 import pynput
 
+import PIL.ImageGrab
+import PIL.ImageChops
+import PIL.Image
+
+import RedNetwork
+import RedConfig
+
 class RedClientHost:
     def __init__(self):
+        self.config = RedConfig.GetSettings()
+
         self.screenCaptureThread = threading.Thread(target = self.screenCapture, args=())
         self.screenCaptureLock = threading.Lock()
 
@@ -28,17 +31,12 @@ class RedClientHost:
         self.lastTimeStamp = 0
         self.lastTimeStampMs = 0
         self.frameCounter = 0
-        self.byteCounter = 0
         self.maxFps = 100
 
         self.currentFps = 0
         self.currentKbps = 0
 
         self.screenResolution = (1920, 1080)
-        self.wChunks = math.ceil(self.screenResolution[0] / 50)
-        self.hChunks = math.ceil(self.screenResolution[1] / 50)
-        self.chunkSize = (50, 50)
-
         self.previousFrame = PIL.Image.new("RGB", self.screenResolution)
 
         self.mouse = pynput.mouse.Controller()
@@ -59,67 +57,54 @@ class RedClientHost:
             if (not self.capturing):
                 time.sleep(0.5)
                 continue
-            
+
             startTime = time.time()
 
             # Get the Frame
-            im = PIL.ImageGrab.grab()
+            currentFrame = PIL.ImageGrab.grab()
 
-            diffImg = PIL.ImageChops.difference(self.previousFrame, im)
+            diffImg = PIL.ImageChops.difference(self.previousFrame, currentFrame)
             diffRect = diffImg.getbbox()
 
             if (diffRect is not None):
-                diffImgCropped = im.crop(diffRect)
-                #diffImgCropped = diffImgCropped.point(lambda x: int(x/17)*17)
+                diffImgCropped = currentFrame.crop(diffRect)
+
+
+                if (self.config["reduce_pixel_depth"]):
+                    diffImgCropped = diffImgCropped.point(lambda x: int(x/17)*17)
 
                 diffData = BytesIO()
                 diffImgCropped.save(diffData, "JPEG", quality=80)
-                #im.save(diffData, "JPEG", quality=50)
 
-                self.byteCounter += diffData.getbuffer().nbytes
+                #self.byteCounter += diffData.getbuffer().nbytes
 
                 self.screenCaptureLock.acquire()
 
-                # Create the  object to be sent
-                packet = {}
+                self.network.enqueueFrameSegment(diffRect, diffData)
 
-                b64Str = base64.b64encode(diffData.getvalue()).decode()
-                packet["type"] = "framesegment"
-                packet["data"] = b64Str
-                packet["rect"] = {}
-                packet["rect"]["left"] = diffRect[0]
-                packet["rect"]["upper"] = diffRect[1]
-                packet["rect"]["right"] = diffRect[2]
-                packet["rect"]["bottom"] = diffRect[3]
-                self.network.frameQueue.append(packet)
-
-                # Set as previous Frame
-                self.previousFrame = im
-
-                #print("CAP")
+                self.previousFrame = currentFrame
 
                 self.screenCaptureLock.release()
+
+            deltaTime = time.time() - startTime
 
             # Calculate Frame Rate
             currentSec = round(time.time())
             currentMs = round(time.time() * 1000)
             if (self.lastTimeStamp != currentSec):
-                self.currentFps = self.frameCounter             # print("FPS: " + str(self.frameCounter))
-                self.currentKbps = self.byteCounter / 1024      # print("Kbps: " + str(self.byteCounter / 1024))
+                self.currentFps = self.frameCounter
                 self.frameCounter = 0
-                self.byteCounter = 0
             else:
                 self.frameCounter += 1
-                #self.byteCounter += toAddData.getbuffer().nbytes # + toSubData.getbuffer().nbytes;
 
             if ((currentMs - self.lastTimeStampMs) < (1000 / self.maxFps)):
-                time.sleep((1000 / self.maxFps) / 1000)
+                timeToWait = ((1000 / self.maxFps) / 1000) - spentTime
+                if (timeToWait > 0):
+                    time.sleep(timeToWait)
 
             self.lastTimeStamp = currentSec
             self.lastTimeStampMs = currentMs
 
-
-            #time.sleep(0.01)
         return
 
     def evtHandler(self):
@@ -140,15 +125,9 @@ class RedClientHost:
         if (pkt["type"] == "hid"):
             self.handleHid(pkt)
 
-
         return
 
     def handleHid(self, pkt):
-        # type: "hid",
-        # input: "mouse",
-        # evType: "mousemove",
-        # x: cX,
-        # y: cY
         if (pkt["input"] == "mouse"):
             self.handleMouseHidPacket(pkt)
         elif (pkt["input"] == "keyboard"):
@@ -196,19 +175,14 @@ class RedClientHost:
             if (nKey is None):
                 return
                 
-            self.keyboard.press(nKey);  # pynput.keyboard.Key.space);
+            self.keyboard.press(nKey);
 
         if (pkt["evType"] == "keyrelease"):
             nKey = self.resolveKey(pkt["keycode"])
             if (nKey is None):
                 return
 
-            self.keyboard.release(nKey) # pynput.keyboard.Key.space);
-            # type: "hid",
-            # input: "keyboard",
-            # evType: press ? "keypress" : "keyrelease",
-            # keycode: keycode
-
+            self.keyboard.release(nKey)
         return
 
     def resolveKey(self, incomingKey):

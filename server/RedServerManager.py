@@ -36,11 +36,26 @@ class RedServerManager:
             self.clients.append(cClient)
 
             await cClient.start()
-
+        
+        except:
+            print("An error occurred to the client " + cClient.clientId)
         finally:
-            self.clients.remove(cClient)
+            self.removeClient(cClient)
             print("Client " + cClient.clientId + " disconnected!")
         return
+
+    def removeClient(self, client):
+        self.clients.remove(client)
+        print("Client " + client.clientId + " removed!")
+        # indexFound = 0
+        # for index, item in enumerate(self.clients):
+        #     print(index)
+        #     if (item.clientId == client.clientId):
+        #         indexFound = index
+        #         break
+        # del self.clients[indexFound]
+        # print("Client " + client.clientId + " removed!")
+
 
     def getClientById(self, id):
         for cClient in self.clients:
