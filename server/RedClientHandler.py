@@ -202,6 +202,14 @@ class RedClientHandler:
         await self.sendPacket(readyPkt)
         return
 
+    async def sendHostClosed(self):
+        self.ready = False
+
+        readyPkt = {}
+        readyPkt["type"] = "hostclosed"
+        await self.sendPacket(readyPkt)
+        return
+
     def behaviorHandler(self):
         while (self.running):
             time.sleep(0.1)

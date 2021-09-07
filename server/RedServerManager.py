@@ -52,7 +52,7 @@ class RedServerManager:
         elif (client.clientType == "host"):
             for cViewer in client.viewers:
                 cViewer.viewing = None
-                cViewer.sendHostClosed()
+                await cViewer.sendHostClosed()
                 await cViewer.ws.close()
 
         self.clients.remove(client)

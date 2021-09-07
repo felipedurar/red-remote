@@ -1,6 +1,7 @@
 import { ChangeDetectorRef, Component, ElementRef, Input, OnInit, ViewChild } from '@angular/core';
 import { NgbModal } from '@ng-bootstrap/ng-bootstrap';
 import { ConnectionDialogComponent } from '../connection-dialog/connection-dialog.component';
+import { LoadingModalComponent } from '../loading-modal/loading-modal.component';
 import { RedClient } from '../red-remote-client/red-client';
 import { RedConnectionInfo } from '../red-remote-client/red-connection-info';
 import { ConnectionStatusService } from '../services/connection-status.service';
@@ -62,6 +63,7 @@ export class RemoteClientComponent implements OnInit {
       this.redClient.drawCallback = this.onDraw.bind(this);
       this.redClient.authReqCallback = this.onAuthReq.bind(this);
       this.redClient.authDenyCallback = this.onAuthDeny.bind(this);
+      this.redClient.hostClosedConnection = this.onHostClosedConnection.bind(this);
       this.redClient.connect(this.connInfo);
     }, 1000);
 
@@ -114,6 +116,14 @@ export class RemoteClientComponent implements OnInit {
   onAuthDeny(reason) {
     this.currentStatus = 0;
     this.connStatus.authDeny.next(reason);
+  }
+
+  onHostClosedConnection() {
+    this.currentStatus = 0;
+    const loadingModal = this.modalService.open(LoadingModalComponent, { centered: true, size: 'lg', backdrop: false });
+    loadingModal.componentInstance.text = "The host closed the connection unexpectedly!";
+    loadingModal.componentInstance.showSpinner = false;
+    return;
   }
 
   calculateRemoteMousePos(cX, cY) {

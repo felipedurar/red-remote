@@ -14,6 +14,7 @@ export class RedClient {
     public drawCallback: Function = null;
     public authReqCallback: Function = null;
     public authDenyCallback: Function = null;
+    public hostClosedConnection: Function = null;
     public viewport: ViewportInfo = { width: 800, height: 600, monitorCount: 1, currentMonitor: 0 };
     public aspectRatioH: number = 800.0 / 600.0;
     public aspectRatioW: number = 600.0 / 800.0;
@@ -63,6 +64,12 @@ export class RedClient {
         if (pktData.type == "authdeny") {
             if (!!this.authDenyCallback)
                 this.authDenyCallback(pktData.reason)
+        }
+
+        if (pktData.type == "hostclosed") {
+            this.ready = false;
+            if (!!this.hostClosedConnection)
+                this.hostClosedConnection()
         }
 
         // Packets below here must be handled only if this client is ready
