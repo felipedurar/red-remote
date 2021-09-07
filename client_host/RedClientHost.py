@@ -12,6 +12,7 @@ import pynput
 import PIL.ImageGrab
 import PIL.ImageChops
 import PIL.Image
+from mss import mss
 
 import RedNetwork
 import RedConfig
@@ -62,7 +63,7 @@ class RedClientHost:
             startTime = time.time()
 
             # Get the Frame
-            currentFrame = PIL.ImageGrab.grab()
+            currentFrame = self.capture_screenshot() # PIL.ImageGrab.grab()
 
             diffImg = PIL.ImageChops.difference(self.previousFrame, currentFrame)
             diffRect = diffImg.getbbox()
@@ -107,6 +108,14 @@ class RedClientHost:
             self.lastTimeStampMs = currentMs
 
         return
+
+    def capture_screenshot(self):
+        # Capture entire screen
+        with mss() as sct:
+            monitor = sct.monitors[1]
+            sct_img = sct.grab(monitor)
+            # Convert to PIL/Pillow Image
+            return PIL.Image.frombytes('RGB', sct_img.size, sct_img.bgra, 'raw', 'BGRX')
 
     def evtHandler(self):
         while (self.running):
