@@ -142,13 +142,13 @@ class RedNetwork:
         return
 
     def on_error(self, ws, error):
-        #print(error)
+        print(error)
         #self.error = True
-        self.running = false
+        self.running = False
         return
 
     def on_close(self, a, b, c):
-        self.running = false
+        self.running = False
         return
 
 

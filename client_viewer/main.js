@@ -1,4 +1,4 @@
-const { app, BrowserWindow } = require('electron')
+const { app, BrowserWindow, Menu } = require('electron')
 const url = require("url");
 const path = require("path");
 
@@ -8,7 +8,7 @@ function createWindow() {
     mainWindow = new BrowserWindow({
         width: 1280,
         height: 720,
-        autoHideMenuBar: true,
+        //autoHideMenuBar: true,
         webPreferences: {
             nodeIntegration: true
         }
@@ -22,7 +22,38 @@ function createWindow() {
         })
     );
     // Open the DevTools.
-    // mainWindow.webContents.openDevTools()
+    //mainWindow.webContents.openDevTools()
+
+    var menu = Menu.buildFromTemplate([
+        {
+            label: 'File',
+            submenu: [
+                {label:'File Management'},
+                {label:'Clipboard Management'},
+                {label:'Exit'}
+            ]
+        },
+        {
+            label: 'Input',
+            submenu: [
+                {label:'Show On Screen Keyboard'},
+            ]
+        },
+        {
+            label: 'View',
+            submenu: [
+                {label:'Full Screen'},
+                {label:'Take Screenshoot'},
+            ]
+        },
+        {
+            label: 'Help',
+            submenu: [
+                {label:'About'}
+            ]
+        }
+    ])
+    Menu.setApplicationMenu(menu); 
 
     mainWindow.on('closed', function () {
         mainWindow = null
