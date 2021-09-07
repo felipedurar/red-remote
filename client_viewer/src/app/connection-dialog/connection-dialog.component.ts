@@ -10,6 +10,8 @@ import { RedConnectionInfo } from '../red-remote-client/red-connection-info';
 export class ConnectionDialogComponent implements OnInit {
 
   @Input("connInfo") connInfo: RedConnectionInfo = new RedConnectionInfo();
+  @Input("reqPassword") reqPassword: boolean = false;
+  @Input("errorText") errorText: string = "";
 
   public showServerUrl: boolean = true;
   public showClientId: boolean = true;
@@ -20,10 +22,15 @@ export class ConnectionDialogComponent implements OnInit {
   }
 
   ngOnInit() {
-    this.showServerUrl = !this.connInfo.server;
-    this.showClientId = !this.connInfo.targetClientId;
-    this.showPassword = !this.connInfo.password;
-
+    if (this.reqPassword) {
+      this.showServerUrl = false;
+      this.showClientId = false;
+      this.showPassword = true;
+    } else {
+      this.showServerUrl = !this.connInfo.server;
+      this.showClientId = !this.connInfo.targetClientId;
+      this.showPassword = false;
+    }
   }
 
 }

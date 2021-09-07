@@ -13,7 +13,8 @@ def LoadConfigs():
 
     RedConfig["server"] = config.get('endpoint', 'server')
     RedConfig["client_id"] = config.get('endpoint', 'client_id')
-    RedConfig["password"] = config.get('endpoint', 'password')
+    RedConfig["auth_required"] = config.get('authentication', 'auth_required')
+    RedConfig["password"] = config.get('authentication', 'password')
 
     RedConfig["reduce_pixel_depth"] = config.get('stream', 'reduce_pixel_depth')
 

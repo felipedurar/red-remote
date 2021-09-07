@@ -3,6 +3,7 @@ import threading
 import time
 import math
 import json
+import hashlib
 
 from io import BytesIO
 
@@ -70,7 +71,7 @@ class RedClientHost:
                 diffImgCropped = currentFrame.crop(diffRect)
 
 
-                if (self.config["reduce_pixel_depth"]):
+                if (self.config["reduce_pixel_depth"] == "1"):
                     diffImgCropped = diffImgCropped.point(lambda x: int(x/17)*17)
 
                 diffData = BytesIO()
@@ -115,11 +116,27 @@ class RedClientHost:
             time.sleep(0.5)
 
     def handlePacket(self, pkt):
+        if (pkt["type"] == "ready"):
+            pass
+
+        if (pkt["type"] == "authcheck"):
+            incomingHashpass = pkt["hashpass"]
+            incomingClientId = pkt["guest_client_id"]
+
+            password = self.config["password"]
+            hashPass = hashlib.sha256(password.encode('utf-8')).hexdigest()
+
+            if (hashPass == incomingHashpass):
+                self.network.sendAuthAccept(incomingClientId)
+            else:
+                self.network.sendAuthDeny(incomingClientId, "Wrong Password")
+
         if (pkt["type"] == "viewercount"):
             if (pkt["amount"] > 0):
                 self.capturing = True
                 print("Started Capturing the Screen since there are viewers")
             else:
+                self.capturing = False
                 print("Stopped Capturing the Screen since there are no viewers")
 
         if (pkt["type"] == "hid"):

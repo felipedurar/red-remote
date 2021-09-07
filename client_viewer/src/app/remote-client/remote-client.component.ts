@@ -1,4 +1,6 @@
 import { ChangeDetectorRef, Component, ElementRef, Input, OnInit, ViewChild } from '@angular/core';
+import { NgbModal } from '@ng-bootstrap/ng-bootstrap';
+import { ConnectionDialogComponent } from '../connection-dialog/connection-dialog.component';
 import { RedClient } from '../red-remote-client/red-client';
 import { RedConnectionInfo } from '../red-remote-client/red-connection-info';
 import { ConnectionStatusService } from '../services/connection-status.service';
@@ -14,14 +16,14 @@ export class RemoteClientComponent implements OnInit {
   public connInfo: RedConnectionInfo;
   public redClient: RedClient;
 
-  public currentStatus = 1;
+  public currentStatus = 0;
   public viewport;
   public viewportCtx;
 
   public currentCanvasSize = { width: 800, height: 600 }
   public lastCalculatedBounds = { x: 0, y: 0, w: 1, h: 1 }
 
-  constructor(private connStatus: ConnectionStatusService, private _elementRef: ElementRef, private cdr: ChangeDetectorRef) { }
+  constructor(private connStatus: ConnectionStatusService, private modalService: NgbModal) { }
 
   ngOnInit() {
     this.detachContextMenu();
@@ -58,6 +60,8 @@ export class RemoteClientComponent implements OnInit {
       this.redClient = new RedClient();
       this.redClient.errorCallback = this.onError.bind(this);
       this.redClient.drawCallback = this.onDraw.bind(this);
+      this.redClient.authReqCallback = this.onAuthReq.bind(this);
+      this.redClient.authDenyCallback = this.onAuthDeny.bind(this);
       this.redClient.connect(this.connInfo);
     }, 1000);
 
@@ -95,6 +99,23 @@ export class RemoteClientComponent implements OnInit {
     }
   }
 
+  onAuthReq() {
+    const tmpConnInfo = new RedConnectionInfo();
+    const connectionDialog = this.modalService.open(ConnectionDialogComponent, { centered: true, backdrop: false });
+    connectionDialog.componentInstance.connInfo = tmpConnInfo;
+    connectionDialog.componentInstance.reqPassword = true;
+    connectionDialog.result.then((res) => {
+      if (res) {
+        this.redClient.sendAuthCheck(tmpConnInfo.password);
+      }
+    });
+  }
+
+  onAuthDeny(reason) {
+    this.currentStatus = 0;
+    this.connStatus.authDeny.next(reason);
+  }
+
   calculateRemoteMousePos(cX, cY) {
     let rX = cX - this.lastCalculatedBounds.x;
     let rY = cY - this.lastCalculatedBounds.y;
@@ -105,6 +126,7 @@ export class RemoteClientComponent implements OnInit {
 
   eventHandler(key, event) {
     if (!this.redClient) return;
+    if (!this.redClient.ready) return;
 
     //console.log(key, event);
     if (key == "onmousemove") {

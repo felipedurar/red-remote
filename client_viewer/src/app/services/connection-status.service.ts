@@ -8,6 +8,7 @@ import { RedConnectionInfo } from '../red-remote-client/red-connection-info';
 export class ConnectionStatusService {
 
   public connect: Subject<RedConnectionInfo> = new Subject<RedConnectionInfo>();
+  public authDeny: Subject<string> = new Subject<string>();
 
   constructor() { }
 }

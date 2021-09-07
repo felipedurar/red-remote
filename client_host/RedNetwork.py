@@ -17,6 +17,8 @@ class RedNetwork:
     
         self.server = ""
         self.client_id = ""
+        self.auth_required = ""
+        self.password = ""
 
         self.socket = None
         self.startTime = 0
@@ -34,6 +36,8 @@ class RedNetwork:
 
         self.server = self.config["server"]
         self.client_id = self.config["client_id"]
+        self.auth_required = self.config["auth_required"]
+        self.password = self.config["password"]
 
         self.socketEvtHandlerThread.start()
 
@@ -89,6 +93,7 @@ class RedNetwork:
         startPacket["client_version"] = "1"
         startPacket["client_id"] = self.client_id
         startPacket["start_time"] = self.startTime
+        startPacket["auth_required"] = True if self.auth_required == "1" else False
         startPacket["os"] = platform.system()
         self.sendPacket(startPacket)
         return
@@ -116,6 +121,21 @@ class RedNetwork:
         self.frameQueue.append(packet)
         return
 
+    def sendAuthAccept(self, guestClientId):
+        packet = {}
+        packet["type"] = "authaccept"
+        packet["guest_client_id"] = guestClientId
+        self.sendPacket(packet)
+        return
+
+    def sendAuthDeny(self, guestClientId, reason):
+        packet = {}
+        packet["type"] = "authdeny"
+        packet["guest_client_id"] = guestClientId
+        packet["reason"] = reason
+        self.sendPacket(packet)
+        return
+
     def on_message(self, ws, message):
         pktObj = json.loads(message)
         self.client.handlePacket(pktObj)
@@ -124,10 +144,11 @@ class RedNetwork:
     def on_error(self, ws, error):
         #print(error)
         #self.error = True
+        self.running = false
         return
 
     def on_close(self, a, b, c):
-
+        self.running = false
         return
 
 

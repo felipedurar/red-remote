@@ -21,6 +21,10 @@
         <input type="password" class="form-control" id="password" aria-describedby="passwordSp" [(ngModel)]="connInfo.password">
     </div>
 
+    <p *ngIf="errorText.length > 0" style="color: red; margin-left: 5px;">
+        {{ errorText }}
+    </p>
+
 </div>
 <div class="modal-footer">
     <button type="button" class="btn btn-outline-dark" (click)="activeModal.close(false)">Close</button>

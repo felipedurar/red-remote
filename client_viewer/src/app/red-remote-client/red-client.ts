@@ -1,5 +1,6 @@
 import { RedConnectionInfo } from "./red-connection-info";
 import { ViewportInfo } from "./red-viewport";
+import * as CryptoJS from "crypto-js";
 
 export class RedClient {
     
@@ -11,13 +12,15 @@ export class RedClient {
     public offscreenCanvas;
     public canvasCtx;
     public drawCallback: Function = null;
+    public authReqCallback: Function = null;
+    public authDenyCallback: Function = null;
     public viewport: ViewportInfo = { width: 800, height: 600, monitorCount: 1, currentMonitor: 0 };
     public aspectRatioH: number = 800.0 / 600.0;
     public aspectRatioW: number = 600.0 / 800.0;
 
-    constructor() {
+    public ready: boolean = false;
 
-    }
+    constructor() {}
 
     public connect(connInfo: RedConnectionInfo) {
         this.connInfo = connInfo;
@@ -48,14 +51,27 @@ export class RedClient {
         var pktData = JSON.parse(event.data);
         console.log("Received packet type: " + pktData.type);
 
+        if (pktData.type == "ready") {
+            this.ready = true;
+        }
+
+        if (pktData.type == "reqauth") {
+            if (!!this.authReqCallback)
+                this.authReqCallback()
+        }
+
+        if (pktData.type == "authdeny") {
+            if (!!this.authDenyCallback)
+                this.authDenyCallback(pktData.reason)
+        }
+
+        // Packets below here must be handled only if this client is ready
+        if (!this.ready) {
+            console.log("Packet Ignored because this client isn't ready!");
+            return;
+        }
+
         if (pktData.type == "framesegment") {
-            // packet["type"] = "framesegment"
-            // packet["data"] = b64Str
-            // packet["rect"] = {}
-            // packet["rect"]["left"] = diffRect[0]
-            // packet["rect"]["upper"] = diffRect[1]
-            // packet["rect"]["right"] = diffRect[2]
-            // packet["rect"]["bottom"] = diffRect[3]
             let cFragment = new Image();
             cFragment.src = 'data:image/jpeg;base64,' + pktData.data;
             cFragment.onload = () => {
@@ -74,11 +90,6 @@ export class RedClient {
         }
 
         if (pktData.type == "viewportinfo") {
-            // viewportInfoPkt["type"] = "viewportinfo"
-            // viewportInfoPkt["monitor_count"] = self.viewing.vpMonitorCount
-            // viewportInfoPkt["current_monitor"] = self.viewing.vpCurrentMonitor
-            // viewportInfoPkt["width"] = self.viewing.vpWidth
-            // viewportInfoPkt["height"] = self.viewing.vpHeight
             this.viewport.width = pktData["width"];
             this.viewport.height = pktData["height"];
             this.viewport.monitorCount = pktData["monitor_count"];
@@ -100,9 +111,16 @@ export class RedClient {
             client_version: "1",
             client_id: this.connInfo.clientId,
             target_client_id: this.connInfo.targetClientId,
-            password: this.connInfo.password,
             start_time: new Date().getTime(),
             os: "browser"
+        };
+        this.socket.send(JSON.stringify(pkt));
+    }
+
+    public sendAuthCheck(password) {
+        let pkt = {
+            type: "authcheck",
+            hashpass: CryptoJS.SHA256(password).toString()
         };
         this.socket.send(JSON.stringify(pkt));
     }

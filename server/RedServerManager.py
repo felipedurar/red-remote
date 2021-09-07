@@ -40,89 +40,26 @@ class RedServerManager:
         except:
             print("An error occurred to the client " + cClient.clientId)
         finally:
-            self.removeClient(cClient)
+            await self.removeClient(cClient)
             print("Client " + cClient.clientId + " disconnected!")
         return
 
-    def removeClient(self, client):
+    async def removeClient(self, client):
+        if (client.clientType == "guest"):
+            if (client.viewing is not None):
+                client.viewing.viewers.remove(client)
+                await client.viewing.updateViewersCount()
+        elif (client.clientType == "host"):
+            for cViewer in client.viewers:
+                cViewer.viewing = None
+                cViewer.sendHostClosed()
+                await cViewer.ws.close()
+
         self.clients.remove(client)
         print("Client " + client.clientId + " removed!")
-        # indexFound = 0
-        # for index, item in enumerate(self.clients):
-        #     print(index)
-        #     if (item.clientId == client.clientId):
-        #         indexFound = index
-        #         break
-        # del self.clients[indexFound]
-        # print("Client " + client.clientId + " removed!")
-
 
     def getClientById(self, id):
         for cClient in self.clients:
             if (cClient.clientId == id):
                 return cClient
         return None
-
-
-#logging.basicConfig()
-
-# STATE = {"value": 0}
-
-# USERS = set()
-
-
-# def state_event():
-#     return json.dumps({"type": "state", **STATE})
-
-
-# def users_event():
-#     return json.dumps({"type": "users", "count": len(USERS)})
-
-
-# async def notify_state():
-#     if USERS:  # asyncio.wait doesn't accept an empty list
-#         message = state_event()
-#         await asyncio.wait([user.send(message) for user in USERS])
-
-
-# async def notify_users():
-#     if USERS:  # asyncio.wait doesn't accept an empty list
-#         message = users_event()
-#         await asyncio.wait([user.send(message) for user in USERS])
-
-################################################################################################
-# async def register(websocket):
-#     USERS.add(websocket)
-#     # await notify_users()
-
-
-# async def unregister(websocket):
-#     USERS.remove(websocket)
-#     # wait notify_users()
-
-
-# async def client_handler(websocket, path):
-#     print(path)
-#     # register(websocket) sends user_event() to websocket
-#     await register(websocket)
-#     try:
-#         #await websocket.send(state_event())
-#         async for message in websocket:
-#             data = json.loads(message)
-#             #print(data)
-#             # if data["action"] == "minus":
-#             #     STATE["value"] -= 1
-#             #     await notify_state()
-#             # elif data["action"] == "plus":
-#             #     STATE["value"] += 1
-#             #     await notify_state()
-#             # else:
-#             #     logging.error("unsupported event: %s", data)
-#     finally:
-#         await unregister(websocket)
-
-
-# start_server = websockets.serve(client_handler, "localhost", 8080)
-
-# asyncio.get_event_loop().run_until_complete(start_server)
-# asyncio.get_event_loop().run_forever()

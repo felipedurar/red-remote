@@ -17,13 +17,22 @@ export class AppComponent {
 
   public loadingModal: NgbModalRef;
   public queryParams = {};
+  public lastErrorReason: string = "";
 
   constructor(private route: ActivatedRoute, private modalService: NgbModal, private connStatus: ConnectionStatusService) {
 
   }
 
   ngOnInit() {
+    this.connStatus.authDeny.subscribe((reason) => {
+      this.lastErrorReason = "Auth Denied: " + reason;
+      this.reqInputs();
+    });
 
+    this.reqInputs();
+  }
+
+  reqInputs() {
     this.loadingModal = this.modalService.open(LoadingModalComponent, { centered: true, backdrop: false });
     this.loadingModal.componentInstance.text = 'Loading Setting...';
     this.loadingModal.componentInstance.showSpinner = true;
@@ -75,6 +84,7 @@ export class AppComponent {
     if (!isComplete) {
       const connectionDialog = this.modalService.open(ConnectionDialogComponent, { centered: true, backdrop: false });
       connectionDialog.componentInstance.connInfo = connInfo;
+      connectionDialog.componentInstance.errorText = this.lastErrorReason;
       connectionDialog.result.then((res) => {
         if (res) {
           this.connect(connInfo);

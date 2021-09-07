@@ -14,7 +14,6 @@ class RedClientHandler:
         self.running = True
         self.behaviorHandlerThread = threading.Thread(target = self.behaviorHandler, args=())
 
-        self.handshakeCompleted = False
         self.clientId = ""
         self.clientType = "none"
 
@@ -25,12 +24,14 @@ class RedClientHandler:
         self.vpHeight = 0
         self.vpMonitorCount = 0
         self.vpCurrentMonitor = 0
+        # Auth
+        self.auth_required = True
 
         # == For Guest ==
         self.viewing = None
         self.targetClientId = ""
 
-
+        self.ready = False
 
         dir(ws)
         return
@@ -48,7 +49,6 @@ class RedClientHandler:
         if (pkt["type"] == "handshake"):
             self.clientId = pkt["client_id"]
             self.clientType = pkt["client_type"]
-            self.handshakeCompleted = True
             print("Client " + self.clientType + " ID " + self.clientId + " connected!")
 
             if (self.clientType == "guest"):
@@ -56,19 +56,84 @@ class RedClientHandler:
                 hostClient = self.serverMgr.getClientById(self.targetClientId)
                 if (hostClient is None):
                     print("Client " + self.clientType + " ID " + self.clientId + " removed because the target client id doesn't exists!")
-                    self.ws.close()
+                    await self.ws.close()
                     return
                 
-                if (not hostClient.handshakeCompleted):
-                    print("Client " + self.clientType + " ID " + self.clientId + " removed because the target client doesn't finished the handshake!")
-                    self.ws.close()
+                if (not hostClient.ready):
+                    print("Client " + self.clientType + " ID " + self.clientId + " removed because the target client is not ready!")
+                    await self.ws.close()
                     return
-                
-                hostClient.viewers.append(self)
-                self.viewing = hostClient
 
-                await hostClient.updateViewersCount()
-                await self.sendViewportInfoToGuest()
+                if (hostClient.auth_required):
+                    await self.requestAuth()
+                else:
+                    await self.setReady()
+                    await self.setViewer(self, hostClient)           
+
+                # hostClient.viewers.append(self)
+                # self.viewing = hostClient
+
+                # await hostClient.updateViewersCount()
+                # await self.sendViewportInfoToGuest()
+            elif (self.clientType == "host"):
+                self.auth_required = pkt["auth_required"]
+                await self.setReady()
+            else:
+                print("Client " + self.clientType + " ID " + self.clientId + " removed because the client type is invalid!")
+                await self.ws.close()
+            return
+
+        if (pkt["type"] == "authcheck"):
+            if (self.clientType != "guest"):
+                print("Error, only guest can send authcheck packets!")
+                await self.ws.close()
+            
+            hostClient = self.serverMgr.getClientById(self.targetClientId)
+            if (hostClient is None):
+                print("Client " + self.clientType + " ID " + self.clientId + " removed because the target client id doesn't exists!")
+                await self.ws.close()
+                return
+
+            pkt["guest_client_id"] = self.clientId
+            
+            await hostClient.sendPacket(pkt)
+            return
+
+        if (pkt["type"] == "authaccept"):
+            if (self.clientType != "host"):
+                print("Error, only host can send authaccept packets!")
+                await self.ws.close()
+            
+            guestId = pkt["guest_client_id"]
+            guestClient = self.serverMgr.getClientById(guestId)
+            if (guestClient is None):
+                print("Client " + self.clientType + " ID " + self.clientId + " was accepted but was not found!")
+                return
+
+            await guestClient.sendPacket(pkt)
+            await guestClient.setReady()
+            await self.setViewer(guestClient, self)
+            return
+
+        if (pkt["type"] == "authdeny"):
+            if (self.clientType != "host"):
+                print("Error, only host can send authdeny packets!")
+                await self.ws.close()
+            
+            guestId = pkt["guest_client_id"]
+            guestClient = self.serverMgr.getClientById(guestId)
+            if (guestClient is None):
+                print("Client " + self.clientType + " ID " + self.clientId + " was denied and was not found!")
+                return
+
+            await guestClient.sendPacket(pkt)
+            return
+
+        # All packets below here must come from a ready client (handshake process is above)
+        if (not self.ready):
+            print("Error, client is not ready or is not sending handshake packets")
+            await self.ws.close()
+            return
 
         if (pkt["type"] == "viewportinfo"):
             if (self.clientType == "host"):
@@ -80,32 +145,61 @@ class RedClientHandler:
 
                 # Resend to viewers to update the viewport
                 for cClient in self.viewers:
+                    if (not cViewer.ready):
+                        continue
                     await cClient.sendPacket(pkt)
             else:
                 print("Invalid Packet Type for a client if type " + self.clientType)
-                self.ws.close()
+                await self.ws.close()
                 return
+            return
 
 
         if (pkt["type"] == "framesegment"):
             if (self.clientType != "host"):
                 print("Error, only host can send framesegment packets!")
-                self.ws.close()
+                await self.ws.close()
 
             for cViewer in self.viewers:
+                if (not cViewer.ready):
+                    continue
                 await cViewer.sendPacket(pkt)
+            return
         
         if (pkt["type"] == "hid"):
             if (self.clientType != "guest"):
                 print("Error, only guest can send hid packets!")
-                self.ws.close()
+                await self.ws.close()
             await self.viewing.sendPacket(pkt);
+            return
 
         return
 
     async def sendPacket(self, packet):
         packetJson = json.dumps(packet)
         await self.ws.send(packetJson)
+        return
+
+    async def setViewer(self, guest, host):
+        host.viewers.append(guest)
+        guest.viewing = host
+
+        await host.updateViewersCount()
+        await guest.sendViewportInfoToGuest()
+        return
+
+    async def requestAuth(self):
+        reqAuthPkt = {}
+        reqAuthPkt["type"] = "reqauth"
+        await self.sendPacket(reqAuthPkt)
+        return
+
+    async def setReady(self):
+        self.ready = True
+
+        readyPkt = {}
+        readyPkt["type"] = "ready"
+        await self.sendPacket(readyPkt)
         return
 
     def behaviorHandler(self):
