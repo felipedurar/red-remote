@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RRP Specification</title>
+    <style>
+        html,
+        body {
+            font-family: Consolas;
+            max-width: 1200px;
+        }
+
+        .red-remote-title {
+            font-size: 48px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h1 class="red-remote-title">Red Remote Project</h1>
+
+    <h2>Red Remote Protocol (RRP) Specification File</h2>
+    <p>Copyright (c) 2021 Felipe Durar</p>
+    <p>Last Updated at: September 7, 2021</p>
+    <br>
+
+    <h3 id="tableofcontents">Table of Contents:</h3>
+    <ul>
+        <li><a href="#whatisit">What is it?</a></li>
+        <li><a href="#objectives">Objectives</a></li>
+        <li><a href="#costs">Costs</a></li>
+        <li><a href="#howdoesitwork">How does it work?</a></li>
+        <!-- <li>Tea
+            <ul>
+                <li>Black tea</li>
+                <li>Green tea
+                    <ul>
+                        <li>China</li>
+                        <li>Africa</li>
+                    </ul>
+                </li>
+            </ul>
+        </li>
+        <li>Milk</li> -->
+    </ul>
+
+    <br>
+
+    <h3 id="whatisit">What is it?</h3>
+    <p>Red Remote Protocol is an open protocol developed by Felipe Durar that provides remote access to a computer with Graphical Interface 
+        over the network sharing basic human interface devices such as mouse and keyboard and providing file transfer.</p>
+    <p>It is layered on top of the WebSocket protocol since it provides full-duplex communication channels over TCP with minimal framing, the data sent through 
+        the websocket are json encoded payload data as it will be described later.</p>
+    <p>More information about the WebSocket can be found at the RFC6455 provided by the Internet Engineering Task Force at 
+        <a href="https://datatracker.ietf.org/doc/html/rfc6455">https://datatracker.ietf.org/doc/html/rfc6455</a></p>
+    <br>
+
+    <h3 id="objectives">Objectives</h3>
+    <ul>
+        <li><b>Be as simple as possible:</b> The design philosophy of the protocol is that it could be simple enough to use basic features 
+            from other languages and even browsers to create client applications without having to deal with complex streaming or networking algothms and protocols,
+            it also would provide a much easier code maintenance and a shorter learning curve for who's never saw the code earlier and wants to create a remote access client.</li>
+    </ul>
+    <br>
+
+    <h3 id="costs">Costs</h3>
+    <ul>
+        <li><b>Performance:</b> In order to keep the protocol simplicity some drawbacks were accepted what can sacrifice the performance of client applications running 
+            this protocol.
+            <br>
+            For example, instead of using more consolidated and popular video streaming protocols the RRP send a framesegment (will be discussed later) packets that
+            just represents the changed screen area, it is basically an image and the rectangle describing where it should be rendered. The image is compressed using some 
+            picture format (such as JPEG or PNG), converted to base64 and them added into the json payload.
+        </li>
+    </ul>
+    <br>
+
+    <h3 id="howdoesitwork">How does it work?</h3>
+    <p>Red Remote protocol was designed to be used with a central server which intermediates the socket connections between the clients providing 
+        several features such as authentication control, payload data validation among other things. Both the machine that is being controlled as well as 
+        the machine who is controlling the remote computer runs a client application as it is show in the picture below.</p>
+    <br>
+    <img src="..\assets\csc_model.jpg" alt="">
+</body>
+
+</html>

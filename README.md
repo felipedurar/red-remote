@@ -6,7 +6,7 @@ This project is in early development
 # What is Red Remote
 Red Remote is a Remote Access Software intended to be simple and easy to embed on third part applications, small but still usefull. It is composed by a client host (the machine to be remotelly controlled) a server and a client viewer to control the host machine.
 
-![alt text](images/diagram.jpg)
+![alt text](assets/csc_model.jpg)
 
 # How does it work?
 Both the server and the client host are Python applications and the client viewer is an Angular project. The communications occurs using websocket and the Red Remote protocol described in the protocol folder in this repository.
